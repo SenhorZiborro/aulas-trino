@@ -1,0 +1,11 @@
+name: trino-aula02
+
+services:
+  trino:
+    image: trinodb/trino:483
+    container_name: trino-aula02
+    ports:
+      - "8080:8080"
+    volumes:
+      # Só o diretório de catálogos: a configuração default da imagem é mantida.
+      - ./etc/catalog:/etc/trino/catalog:ro
