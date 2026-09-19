@@ -1,0 +1,36 @@
+name: trino-aula03
+
+# Primeiro cluster de verdade: 1 coordinator + 2 workers.
+# Objetivo: ver stage, task, split e exchange acontecendo entre processos.
+#
+# Os dois workers compartilham o mesmo etc-worker/. Por isso node.properties
+# NÃO define node.id: sem o campo, cada nó gera o seu na inicialização.
+# Se o arquivo fixasse um id, os dois workers teriam a mesma identidade.
+
+services:
+  coordinator:
+    image: trinodb/trino:483
+    container_name: trino-aula03-coordinator
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./etc-coordinator:/etc/trino:ro
+      - ./catalog:/etc/trino/catalog:ro
+
+  worker1:
+    image: trinodb/trino:483
+    container_name: trino-aula03-worker1
+    depends_on:
+      - coordinator
+    volumes:
+      - ./etc-worker:/etc/trino:ro
+      - ./catalog:/etc/trino/catalog:ro
+
+  worker2:
+    image: trinodb/trino:483
+    container_name: trino-aula03-worker2
+    depends_on:
+      - coordinator
+    volumes:
+      - ./etc-worker:/etc/trino:ro
+      - ./catalog:/etc/trino/catalog:ro
