@@ -1,0 +1,10 @@
+name: trino-aula04
+
+services:
+  trino:
+    image: trinodb/trino:483
+    container_name: trino-aula04
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./etc/catalog:/etc/trino/catalog:ro
