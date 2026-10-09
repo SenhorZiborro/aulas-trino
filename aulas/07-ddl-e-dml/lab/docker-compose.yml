@@ -1,0 +1,43 @@
+name: trino-aula07
+
+# Trino + MinIO (S3). O MinIO guarda os ARQUIVOS das tabelas; o catálogo `lake`
+# usa o metastore de ARQUIVO do próprio conector Hive (hive.metastore=file),
+# que grava o metadado dentro do mesmo bucket. Por isso não há metastore Hive
+# nem banco de metadados aqui: dois containers resolvem a aula.
+# A partir da aula 19 o metastore passa a ser um serviço de verdade.
+#
+# SOBRE A IMAGEM DO MinIO (medido em 2026-10-07): a imagem `minio/minio` no
+# Docker Hub deixou de aceitar pull anônimo —
+#   pull access denied for minio/minio, repository does not exist
+#     or may require 'docker login'
+# e `quay.io/minio/minio` responde 401. A imagem arquivada da Bitnami ainda é
+# pública, é o mesmo MinIO, e tem a vantagem de criar o bucket sozinha via
+# MINIO_DEFAULT_BUCKETS — o que dispensa o container `minio-init`.
+
+services:
+  trino:
+    image: trinodb/trino:483
+    container_name: trino-aula07
+    ports:
+      - "8080:8080"
+    depends_on:
+      - minio
+    volumes:
+      - ./etc/catalog:/etc/trino/catalog:ro
+
+  minio:
+    image: bitnamilegacy/minio:2025.5.24-debian-12-r5
+    container_name: minio-aula07
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+      # cria o bucket na subida, sem precisar de container auxiliar
+      MINIO_DEFAULT_BUCKETS: lakehouse
+    ports:
+      - "9000:9000"   # API S3
+      - "9001:9001"   # console web (minio / minio123)
+    volumes:
+      - minio-data:/bitnami/minio/data
+
+volumes:
+  minio-data:
