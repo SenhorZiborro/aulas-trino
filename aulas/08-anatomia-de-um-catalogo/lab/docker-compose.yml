@@ -1,0 +1,50 @@
+name: trino-aula08
+
+# Cluster com gestão DINÂMICA de catálogos, mais um Postgres para
+# criar/remover catálogo por SQL, sem reiniciar o servidor.
+
+services:
+  trino:
+    image: trinodb/trino:483
+    container_name: trino-aula08
+    ports:
+      - "8080:8080"
+    depends_on:
+      - minio
+      - postgres
+    volumes:
+      - ./etc:/etc/trino:ro
+      # Diretório de catálogos montado do HOST e GRAVÁVEL: com
+      # catalog.store=file, o coordinator cria e remove arquivos aqui.
+      # (Um volume nomeado NÃO serve: o Docker o inicializa com uma cópia
+      #  dos catálogos default da imagem, e o lab começaria sujo.)
+      - ./catalog:/etc/trino/catalog
+
+  postgres:
+    image: postgres:16
+    container_name: postgres-aula08
+    environment:
+      POSTGRES_USER: trino
+      POSTGRES_PASSWORD: trino
+      POSTGRES_DB: vendas
+    volumes:
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+
+  # MinIO (S3) para materializar em PARQUET. A imagem `minio/minio` do Docker
+  # Hub deixou de aceitar pull anonimo; a arquivada da Bitnami ainda e publica,
+  # e o mesmo MinIO, e cria o bucket sozinha via MINIO_DEFAULT_BUCKETS.
+  minio:
+    image: bitnamilegacy/minio:2025.5.24-debian-12-r5
+    container_name: minio-aula08
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+      MINIO_DEFAULT_BUCKETS: lakehouse
+    ports:
+      - "9000:9000"   # API S3
+      - "9001:9001"   # console web (minio / minio123)
+    volumes:
+      - minio-data:/bitnami/minio/data
+
+volumes:
+  minio-data:
