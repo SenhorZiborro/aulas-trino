@@ -1,0 +1,21 @@
+{
+    "tableName": "pedido",
+    "schemaName": "default",
+    "topicName": "pedido",
+    "key": {
+        "dataFormat": "json",
+        "fields": [
+            { "name": "chave", "mapping": "k", "type": "VARCHAR" }
+        ]
+    },
+    "message": {
+        "dataFormat": "json",
+        "fields": [
+            { "name": "id",       "mapping": "id",              "type": "BIGINT" },
+            { "name": "cliente",  "mapping": "cliente",         "type": "VARCHAR" },
+            { "name": "valor",    "mapping": "valor",           "type": "DOUBLE" },
+            { "name": "canal",    "mapping": "canal",           "type": "VARCHAR" },
+            { "name": "cidade",   "mapping": "endereco/cidade", "type": "VARCHAR" }
+        ]
+    }
+}

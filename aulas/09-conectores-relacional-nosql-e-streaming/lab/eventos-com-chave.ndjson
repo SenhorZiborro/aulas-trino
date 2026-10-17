@@ -1,0 +1,5 @@
+alice:{"id":6,"cliente":"alice","valor":10.00,"canal":"web","endereco":{"cidade":"Sao Paulo"}}
+bob:{"id":7,"cliente":"bob","valor":20.00,"canal":"app","endereco":{"cidade":"Rio de Janeiro"}}
+carol:{"id":8,"cliente":"carol","valor":30.00,"canal":"web","endereco":{"cidade":"Curitiba"}}
+dave:{"id":9,"cliente":"dave","valor":40.00,"canal":"app","endereco":{"cidade":"Recife"}}
+erin:{"id":10,"cliente":"erin","valor":50.00,"canal":"web","endereco":{"cidade":"Salvador"}}
