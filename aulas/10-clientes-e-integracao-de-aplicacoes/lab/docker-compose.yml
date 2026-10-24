@@ -1,0 +1,28 @@
+name: trino-aula10
+
+# Trino + um cliente Python (protocolo HTTP) + DBeaver via JDBC (no host).
+# O serviço "cliente" é um container com Python e o trino-python-client,
+# para exercitar o protocolo sem instalar nada na máquina.
+
+services:
+  trino:
+    image: trinodb/trino:483
+    container_name: trino-aula10
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./etc/catalog:/etc/trino/catalog:ro
+
+  cliente:
+    image: python:3.12-slim
+    container_name: cliente-aula10
+    depends_on:
+      - trino
+    working_dir: /app
+    volumes:
+      - ./cliente:/app
+    # Instala o driver e fica disponível para `docker compose exec`
+    command: >
+      sh -c "pip install --no-cache-dir trino requests >/dev/null &&
+             echo 'cliente pronto: use docker compose exec cliente python <script>.py' &&
+             sleep infinity"
