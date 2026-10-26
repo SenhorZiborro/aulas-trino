@@ -1,0 +1,106 @@
+name: trino-aula11
+
+# Stack lakehouse: MinIO (S3) + Hive Metastore + Trino.
+#
+# NOTA SOBRE A IMAGEM DO METASTORE (descoberta rodando este lab):
+# a imagem oficial `apache/hive:4.0.1` NÃO consegue falar com S3. Os jars do
+# S3A vêm em /opt/hadoop/share/hadoop/tools/lib, que não entra no classpath do
+# serviço (ele sobe via `hadoop jar` / RunJar), e qualquer operação sobre
+# `s3://` falha com:
+#   Failed to create external path s3://... : null
+#   org.apache.hadoop.fs.UnsupportedFileSystemException: No FileSystem for scheme "s3"
+# Copiar os jars para /opt/hive/lib ou para o common/lib do Hadoop não resolve.
+#
+# A imagem `starburstdata/hive` — a mesma usada nos tutoriais do Trino — já vem
+# com HADOOP_CLASSPATH apontando para os jars do S3A e aceita a configuração de
+# S3 por variáveis de ambiente. O banco de metadados é um Postgres pequeno.
+
+services:
+  trino:
+    image: trinodb/trino:483
+    container_name: trino-aula11
+    ports:
+      - "8080:8080"
+    depends_on:
+      - metastore
+      - minio
+    volumes:
+      - ./etc/catalog:/etc/trino/catalog:ro
+
+  # NOTA (medido em 2026-10-08): a imagem `minio/minio` no Docker Hub deixou de
+  # aceitar pull anonimo -- "pull access denied for minio/minio" -- e
+  # quay.io/minio/minio responde 401. A imagem arquivada da Bitnami ainda e
+  # publica, e o mesmo MinIO e ja traz o `mc`, entao serve para os dois servicos.
+  minio:
+    image: bitnamilegacy/minio:2025.5.24-debian-12-r5
+    container_name: minio-aula11
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    ports:
+      - "9000:9000"   # API S3
+      - "9001:9001"   # console web
+    volumes:
+      - minio-data:/bitnami/minio/data
+
+  # Cria o bucket na subida e encerra
+  minio-init:
+    image: bitnamilegacy/minio:2025.5.24-debian-12-r5
+    container_name: minio-init-aula11
+    depends_on:
+      - minio
+    entrypoint: >
+      sh -c "
+        until mc alias set local http://minio:9000 minio minio123 2>/dev/null; do sleep 2; done;
+        mc mb --ignore-existing local/lakehouse;
+        echo 'bucket lakehouse pronto';
+      "
+
+  metastore-db:
+    image: postgres:16
+    container_name: metastore-db-aula11
+    environment:
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hive
+      POSTGRES_DB: metastore
+
+  metastore:
+    image: starburstdata/hive:3.1.3-e.10
+    container_name: metastore-aula11
+    depends_on:
+      - minio
+      - metastore-db
+    ports:
+      - "9083:9083"
+    environment:
+      # Banco de metadados. A imagem NAO aceita Derby ("Unsupported driver:
+      # org.apache.derby.jdbc.EmbeddedDriver") -- so mariadb, mysql, postgres,
+      # sqlserver ou oracle. Usamos Postgres, cujo driver ja vem na imagem.
+      HIVE_METASTORE_DRIVER: org.postgresql.Driver
+      HIVE_METASTORE_JDBC_URL: jdbc:postgresql://metastore-db:5432/metastore
+      HIVE_METASTORE_USER: hive
+      HIVE_METASTORE_PASSWORD: hive
+      HIVE_METASTORE_WAREHOUSE_DIR: s3://lakehouse/warehouse/
+      # Acesso ao MinIO — é isto que a imagem oficial do Hive não sabe fazer
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minio
+      S3_SECRET_KEY: minio123
+      S3_PATH_STYLE_ACCESS: "true"
+      # A imagem exige que TODAS estas variáveis existam (test -v), mesmo vazias
+      REGION: ""
+      GOOGLE_CLOUD_KEY_FILE_PATH: ""
+      AZURE_ADL_CLIENT_ID: ""
+      AZURE_ADL_CREDENTIAL: ""
+      AZURE_ADL_REFRESH_URL: ""
+      AZURE_ABFS_STORAGE_ACCOUNT: ""
+      AZURE_ABFS_ACCESS_KEY: ""
+      AZURE_WASB_STORAGE_ACCOUNT: ""
+      AZURE_ABFS_OAUTH: ""
+      AZURE_ABFS_OAUTH_TOKEN_PROVIDER: ""
+      AZURE_ABFS_OAUTH_CLIENT_ID: ""
+      AZURE_ABFS_OAUTH_SECRET: ""
+      AZURE_ABFS_OAUTH_ENDPOINT: ""
+      AZURE_WASB_ACCESS_KEY: ""
+
+volumes:
+  minio-data:
