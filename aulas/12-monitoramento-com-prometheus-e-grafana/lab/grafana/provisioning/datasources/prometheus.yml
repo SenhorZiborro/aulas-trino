@@ -1,0 +1,11 @@
+# Datasource provisionado: o Grafana sobe ja sabendo onde esta o Prometheus.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus-aula12
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

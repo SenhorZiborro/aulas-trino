@@ -1,0 +1,39 @@
+# REGRAS DE GRAVAÇÃO (recording rules): o Prometheus calcula a expressão a cada
+# intervalo e guarda o resultado com um nome novo.
+#
+# Aqui elas resolvem um problema concreto. O Trino normaliza identificador para
+# minúsculas, então o conector `prometheus` NÃO alcança métrica com maiúscula no
+# nome -- e praticamente toda métrica do Trino tem maiúscula
+# (trino_execution_name_QueryManager_RunningQueries). A regra de gravação cria o
+# apelido em minúsculas, e esse apelido vira tabela consultável por SQL.
+#
+# De brinde, é também a forma de dar NOME DE NEGÓCIO a uma métrica de
+# infraestrutura: o painel e o alerta passam a falar `trino_queries_na_fila` em
+# vez do nome do MBean.
+groups:
+  - name: apelidos_para_sql
+    interval: 10s
+    rules:
+      - record: trino_queries_rodando
+        expr: trino_execution_name_QueryManager_RunningQueries
+
+      - record: trino_queries_na_fila
+        expr: trino_execution_name_QueryManager_QueuedQueries
+
+      - record: trino_queries_concluidas
+        expr: trino_execution_name_QueryManager_CompletedQueries
+
+      - record: trino_falhas_de_usuario
+        expr: trino_execution_name_QueryManager_UserErrorFailures
+
+      - record: trino_falhas_de_recurso
+        expr: trino_execution_name_QueryManager_InsufficientResourcesFailures
+
+      - record: trino_memoria_reservada_bytes
+        expr: trino_memory_name_ClusterMemoryManager_ClusterUserMemoryReservation
+
+      - record: trino_heap_usado_bytes
+        expr: JMX_java_lang_TYPE_Memory_ATTRIBUTE_HeapMemoryUsage_used
+
+      - record: trino_gc_ms_por_segundo
+        expr: rate(JMX_java_lang_NAME_G1_Young_Generation_TYPE_GarbageCollector_ATTRIBUTE_CollectionTime[1m])

@@ -1,0 +1,276 @@
+{
+  "uid": "trino-aula12",
+  "title": "Trino — caminho de diagnóstico",
+  "description": "Quatro perguntas, de cima para baixo: o cluster aceita? aguenta? erra? em que gasta?",
+  "tags": ["trino", "aula12"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "type": "row",
+      "title": "1. O cluster está aceitando?",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Queries: rodando x na fila",
+      "description": "Fila subindo com execução estável é cluster pequeno para a demanda, não cluster lento.",
+      "datasource": { "type": "prometheus", "uid": "prometheus-aula12" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "trino_execution_name_QueryManager_RunningQueries{papel=\"coordinator\"}",
+          "legendFormat": "rodando"
+        },
+        {
+          "refId": "B",
+          "expr": "trino_execution_name_QueryManager_QueuedQueries{papel=\"coordinator\"}",
+          "legendFormat": "na fila"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tempo de execução: p50, p95 e p99 (ms)",
+      "description": "Percentis do último minuto, publicados pelo próprio QueryManager.",
+      "datasource": { "type": "prometheus", "uid": "prometheus-aula12" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "min": 0, "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "trino_execution_name_QueryManager_ExecutionTime_OneMinute{papel=\"coordinator\",quantile=\"0.5\"}",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "expr": "trino_execution_name_QueryManager_ExecutionTime_OneMinute{papel=\"coordinator\",quantile=\"0.95\"}",
+          "legendFormat": "p95"
+        },
+        {
+          "refId": "C",
+          "expr": "trino_execution_name_QueryManager_ExecutionTime_OneMinute{papel=\"coordinator\",quantile=\"0.99\"}",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "2. O cluster está aguentando?",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Memória do cluster: disponível x reservada",
+      "description": "Reserva colada no total é o que antecede query morta por memória.",
+      "datasource": { "type": "prometheus", "uid": "prometheus-aula12" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "min": 0, "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "trino_memory_name_ClusterMemoryManager_ClusterMemoryBytes{papel=\"coordinator\"}",
+          "legendFormat": "total do cluster"
+        },
+        {
+          "refId": "B",
+          "expr": "trino_memory_name_ClusterMemoryManager_ClusterUserMemoryReservation{papel=\"coordinator\"}",
+          "legendFormat": "reservada por queries"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Workers coletados",
+      "description": "Coordinator respondendo com worker fora é capacidade caindo em silêncio.",
+      "datasource": { "type": "prometheus", "uid": "prometheus-aula12" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 10 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 2 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(up{job=\"trino\",papel=\"worker\"} == 1)",
+          "legendFormat": "workers"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Queries mortas por falta de memória",
+      "description": "Qualquer valor acima de zero é ação de plataforma.",
+      "datasource": { "type": "prometheus", "uid": "prometheus-aula12" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 10 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "trino_memory_name_ClusterMemoryManager_QueriesKilledDueToOutOfMemory{papel=\"coordinator\"}",
+          "legendFormat": "mortas"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Heap usado por nó",
+      "description": "Vem de metrics.jmx-object-names; sem essa propriedade este painel fica vazio.",
+      "datasource": { "type": "prometheus", "uid": "prometheus-aula12" },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 14 },
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "min": 0, "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 0 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "JMX_java_lang_TYPE_Memory_ATTRIBUTE_HeapMemoryUsage_used",
+          "legendFormat": "{{papel}} {{instance}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "3. O cluster está errando?",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Falhas por tipo, por minuto",
+      "description": "Separado de propósito: USER_ERROR não é incidente. Somar os três num painel só é como treinar o time a ignorar o alarme.",
+      "datasource": { "type": "prometheus", "uid": "prometheus-aula12" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "bars", "lineWidth": 1, "fillOpacity": 60 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "increase(trino_execution_name_QueryManager_UserErrorFailures{papel=\"coordinator\"}[1m])",
+          "legendFormat": "erro de usuário"
+        },
+        {
+          "refId": "B",
+          "expr": "increase(trino_execution_name_QueryManager_InsufficientResourcesFailures{papel=\"coordinator\"}[1m])",
+          "legendFormat": "recurso insuficiente"
+        },
+        {
+          "refId": "C",
+          "expr": "increase(trino_execution_name_QueryManager_InternalFailures{papel=\"coordinator\"}[1m])",
+          "legendFormat": "erro interno"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "GC: milissegundos parados por segundo, por nó",
+      "description": "A causa mais comum de \"o Trino ficou lento\". Sobe aqui antes de aparecer em qualquer outro painel.",
+      "datasource": { "type": "prometheus", "uid": "prometheus-aula12" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(JMX_java_lang_NAME_G1_Young_Generation_TYPE_GarbageCollector_ATTRIBUTE_CollectionTime[1m])",
+          "legendFormat": "young — {{instance}}"
+        },
+        {
+          "refId": "B",
+          "expr": "rate(JMX_java_lang_NAME_G1_Old_Generation_TYPE_GarbageCollector_ATTRIBUTE_CollectionTime[1m])",
+          "legendFormat": "old — {{instance}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "4. Em que o cluster está gastando?",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Bytes de entrada por segundo",
+      "description": "Quanto o cluster está lendo das fontes. Sobe com query que varre tabela inteira.",
+      "datasource": { "type": "prometheus", "uid": "prometheus-aula12" },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 28 },
+      "fieldConfig": {
+        "defaults": { "unit": "Bps", "min": 0, "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(trino_execution_name_QueryManager_ConsumedInputBytes{papel=\"coordinator\"}[1m])",
+          "legendFormat": "bytes lidos/s"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Queries concluídas por minuto",
+      "description": "A vazão do cluster. Cair com fila subindo é o par clássico de saturação.",
+      "datasource": { "type": "prometheus", "uid": "prometheus-aula12" },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 28 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "bars", "lineWidth": 1, "fillOpacity": 60 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "increase(trino_execution_name_QueryManager_CompletedQueries{papel=\"coordinator\"}[1m])",
+          "legendFormat": "concluídas"
+        }
+      ]
+    }
+  ]
+}

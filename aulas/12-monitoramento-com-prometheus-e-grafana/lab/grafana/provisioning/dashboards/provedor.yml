@@ -1,0 +1,16 @@
+# Provedor de dashboards: tudo o que estiver em /var/lib/grafana/dashboards
+# entra no Grafana na subida. E assim que um dashboard vira ARQUIVO versionado
+# no repositorio, em vez de algo que alguem montou clicando e ninguem sabe
+# reproduzir.
+apiVersion: 1
+
+providers:
+  - name: aula12
+    orgId: 1
+    folder: Trino
+    type: file
+    disableDeletion: false
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

@@ -1,0 +1,49 @@
+# Regras de alerta para LER e discutir. Repare no que NAO esta aqui: nao ha
+# alerta de CPU, nem de "queries com falha" somando tudo. Alerta e para o que
+# exige acao de quem esta de plantao.
+groups:
+  - name: trino
+    rules:
+      # Fila crescendo e o primeiro sinal de cluster pequeno para a demanda.
+      - alert: TrinoFilaCrescendo
+        expr: trino_execution_name_QueryManager_QueuedQueries > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mais de 5 queries na fila por 10 minutos"
+
+      # Query morta por falta de memoria: sempre acao de plataforma.
+      - alert: TrinoQueryMortaPorMemoria
+        expr: increase(trino_memory_name_ClusterMemoryManager_QueriesKilledDueToOutOfMemory[15m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "O cluster matou query por falta de memoria"
+
+      # Falha de RECURSO, nao de usuario. USER_ERROR de proposito nao entra.
+      - alert: TrinoFalhaDeRecurso
+        expr: increase(trino_execution_name_QueryManager_InsufficientResourcesFailures[15m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Query recusada por falta de recurso no cluster"
+
+      # Worker que sai do cluster: o coordinator continua respondendo, e a
+      # capacidade cai sem ninguem perceber.
+      - alert: TrinoWorkerFora
+        expr: count(up{job="trino", papel="worker"} == 1) < 2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Menos de 2 workers coletados"
+
+      # Pausa de GC acumulada: a causa mais comum de "o Trino ficou lento".
+      - alert: TrinoGCAlto
+        expr: rate(JMX_java_lang_NAME_G1_Young_Generation_TYPE_GarbageCollector_ATTRIBUTE_CollectionTime[5m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mais de 100ms de GC por segundo em um no"

@@ -1,0 +1,31 @@
+# Coleta a cada 5s para o dashboard reagir dentro do tempo de uma aula. Em
+# producao, 15s a 30s e o normal.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+# O /metrics do Trino e protegido pela autenticacao do cluster. Sem seguranca
+# configurada, basta identificar o usuario -- e o jeito de o Prometheus fazer
+# isso e com basic_auth so de username. Sem isto, todo alvo responde 401.
+scrape_configs:
+  - job_name: trino
+    metrics_path: /metrics
+    basic_auth:
+      username: prometheus
+    static_configs:
+      - targets: ['trino:8080']
+        labels:
+          papel: coordinator
+      - targets: ['trino-worker-1:8080', 'trino-worker-2:8080']
+        labels:
+          papel: worker
+
+# Dois arquivos de regra:
+#   regras.yml   regras de GRAVACAO, que criam apelidos em minusculas -- e o que
+#                torna as metricas do Trino alcancaveis pelo conector
+#                `prometheus`, no bloco 4 da aula
+#   alertas.yml  regras de ALERTA, que o lab NAO dispara (nao ha Alertmanager
+#                aqui), escritas para a turma ler e discutir
+rule_files:
+  - /etc/prometheus/regras.yml
+  - /etc/prometheus/alertas.yml
