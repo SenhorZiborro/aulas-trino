@@ -1,0 +1,87 @@
+{
+  "catalogs": [
+    {
+      "user": "carla",
+      "catalog": ".*",
+      "allow": "all"
+    },
+    {
+      "user": "ana|beto",
+      "catalog": "vendas|system",
+      "allow": "read-only"
+    }
+  ],
+  "schemas": [
+    {
+      "user": "carla",
+      "schema": ".*",
+      "owner": true
+    },
+    {
+      "user": "ana|beto",
+      "catalog": "vendas",
+      "schema": "publico",
+      "owner": false
+    }
+  ],
+  "tables": [
+    {
+      "user": "carla",
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "DELETE",
+        "UPDATE",
+        "OWNERSHIP"
+      ]
+    },
+    {
+      "user": "ana",
+      "catalog": "vendas",
+      "schema": "publico",
+      "table": "cliente|pedido",
+      "privileges": [
+        "SELECT"
+      ]
+    },
+    {
+      "user": "beto",
+      "catalog": "vendas",
+      "schema": "publico",
+      "table": "pedido",
+      "privileges": [
+        "SELECT"
+      ],
+      "columns": [
+        {
+          "name": "valor",
+          "allow": false
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "user": "carla",
+      "catalog": "vendas",
+      "schema": "system",
+      "function": "query",
+      "privileges": [
+        "EXECUTE"
+      ]
+    },
+    {
+      "catalog": "system",
+      "schema": "builtin",
+      "privileges": [
+        "EXECUTE"
+      ]
+    }
+  ],
+  "impersonation": [
+    {
+      "original_user": "carla",
+      "new_user": "ana|beto"
+    }
+  ]
+}

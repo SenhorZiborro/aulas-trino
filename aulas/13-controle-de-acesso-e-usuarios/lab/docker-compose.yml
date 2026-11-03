@@ -1,0 +1,34 @@
+name: trino-aula13
+
+# Trino com autenticação por arquivo de senha e autorização por arquivo de
+# regras, sobre um Postgres que tem seus próprios usuários e GRANTs.
+
+services:
+  trino:
+    image: trinodb/trino:483
+    container_name: trino-aula13
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    depends_on:
+      - postgres
+    volumes:
+      - ./etc/catalog:/etc/trino/catalog:ro
+      - ./etc/config.properties:/etc/trino/config.properties:ro
+      - ./etc/access-control.properties:/etc/trino/access-control.properties:ro
+      - ./etc/regras.json:/etc/trino/regras.json:ro
+      - ./etc/password-authenticator.properties:/etc/trino/password-authenticator.properties:ro
+      - ./etc/senhas.db:/etc/trino/senhas.db:ro
+      - ./etc/trino.pem:/etc/trino/trino.pem:ro
+
+  # O Postgres é a fonte de dados, e tem o PRÓPRIO controle de acesso:
+  # o usuário de conexão do catálogo só recebe GRANT no que pode ler.
+  postgres:
+    image: postgres:16
+    container_name: postgres-aula13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: vendas
+    volumes:
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
